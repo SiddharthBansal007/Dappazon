@@ -23,10 +23,11 @@ contract Dappazon {
 
     mapping(uint256 => Item) public items;
     mapping(address => uint256) public orderCount;
-    mapping(address => mapping(address => Order)) public orders;
+    mapping(address => mapping(uint => Order)) public orders;
     
 
     event List(string name, uint256 cost, uint256 quantity);
+    event Buy(address buyer, uint256 orderId, uint256 itemId);
 
     modifier onlyOwner() {
         require(msg.sender == owner);
@@ -59,6 +60,33 @@ contract Dappazon {
 
         //emit an event
         emit List(_name, _cost, _stock);
+    }
+
+    //Buy Products
+    function buy(uint256 _id) public payable {
+
+        //fetch item
+        Item memory item = items[_id];
+
+        //check if enough ether to buy item
+        require(msg.value >= item.cost, "Not enough ether sent to purchase the item");
+
+        //check if the item is in stock
+        require(item.stock > 0, "Item is out of stock");
+
+        //create an order
+        Order memory order = Order(block.timestamp, item);
+
+        //save order to chain
+        orderCount[msg.sender]++;
+        orders[msg.sender][orderCount[msg.sender]] = order;
+
+        //subtract stock
+        items[_id].stock = item.stock - 1;
+
+        //emit event
+        emit Buy(msg.sender, orderCount[msg.sender], item.id);
+
     }
 
 
